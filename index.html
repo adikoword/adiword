@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>wordprep — Платформа для изучения и тестов</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    body{font-family:Inter,system-ui,sans-serif;background:#fafafa;color:#18181b}
+    .hidden{display:none!important}
+  </style>
+</head>
+<body class="min-h-screen">
+  <header class="sticky top-0 z-20 border-b border-zinc-200 bg-white/90 backdrop-blur">
+    <div class="mx-auto flex h-16 max-w-5xl items-center justify-between px-4">
+      <div class="flex items-center gap-3"><div class="grid h-9 w-9 place-items-center rounded-xl bg-zinc-900 text-sm font-bold text-white">wp</div><strong>wordprep</strong></div>
+      <nav class="flex rounded-xl border border-zinc-200 bg-zinc-100 p-1 text-sm">
+        <button class="tab rounded-lg px-3 py-1.5" data-tab="test">Тесты</button>
+        <button class="tab rounded-lg px-3 py-1.5 text-zinc-600" data-tab="history">Мои тесты</button>
+        <button class="tab rounded-lg px-3 py-1.5 text-zinc-600" data-tab="sources">Источники</button>
+      </nav>
+    </div>
+  </header>
+
+  <main class="mx-auto max-w-5xl px-4 py-8">
+    <section id="test" class="rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <span class="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-medium text-indigo-700">Интерактивный тест</span>
+      <h1 class="mt-3 text-2xl font-semibold">Настройка теста</h1>
+      <p class="mt-1 text-sm text-zinc-500">Выберите диапазон слов и проверьте свои знания.</p>
+      <div class="mt-6 grid gap-4 border-t border-zinc-100 pt-6 sm:grid-cols-3">
+        <label class="text-sm">От слова №<input id="start" type="number" value="80" min="1" class="mt-1 w-full rounded-xl border border-zinc-300 px-3 py-2"></label>
+        <label class="text-sm">До слова №<input id="end" type="number" value="110" min="1" class="mt-1 w-full rounded-xl border border-zinc-300 px-3 py-2"></label>
+        <div class="flex items-end"><button id="startTest" class="w-full rounded-xl bg-zinc-900 px-5 py-2.5 text-sm font-medium text-white">Начать тест →</button></div>
+      </div>
+      <div id="quiz" class="mt-6 hidden border-t border-zinc-100 pt-6">
+        <div class="mb-4 flex justify-between text-sm"><span id="counter"></span><span id="progress" class="text-indigo-600"></span></div>
+        <h2 id="phrase" class="text-3xl font-bold"></h2>
+        <div class="mt-5 grid gap-3 sm:grid-cols-2" id="options"></div>
+        <textarea id="sentence" rows="3" class="mt-5 w-full rounded-xl border border-zinc-300 p-3 text-sm" placeholder="Напишите пример с этим выражением на английском..."></textarea>
+        <div class="mt-4 flex gap-2"><button id="check" class="rounded-xl bg-indigo-600 px-5 py-2.5 text-sm text-white">Проверить слово</button><button id="next" class="rounded-xl border border-zinc-300 px-5 py-2.5 text-sm">Следующее →</button></div>
+      </div>
+    </section>
+
+    <section id="history" class="hidden rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <h2 class="text-xl font-semibold">Мои пройденные тесты</h2><div id="historyList" class="mt-4 text-sm text-zinc-500">Завершённых тестов пока нет.</div>
+    </section>
+
+    <section id="sources" class="hidden rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm">
+      <h2 class="text-xl font-semibold">Мои источники</h2>
+      <p class="mt-1 text-sm text-zinc-500">Вставьте текст или слова по одному в каждой строке.</p>
+      <input id="sourceTitle" class="mt-5 w-full rounded-xl border border-zinc-300 px-3 py-2 text-sm" placeholder="Название источника">
+      <textarea id="sourceText" rows="6" class="mt-3 w-full rounded-xl border border-zinc-300 p-3 text-sm" placeholder="experience burnout&#10;make a sensible decision&#10;build mutual trust"></textarea>
+      <button id="saveSource" class="mt-3 rounded-xl bg-zinc-900 px-5 py-2.5 text-sm text-white">Сохранить источник</button>
+      <div id="sourceList" class="mt-5 space-y-2"></div>
+    </section>
+  </main>
+
+  <script>
+    const topicWords=["hectic schedule","use time wisely","form a habit","plan ahead","build momentum","experience burnout","make a sensible decision","face a dilemma","find a practical solution","make a tough decision","build a strong relationship","earn someone's trust","mutual understanding","show genuine interest","feel overwhelmed","genuinely surprised","lose your temper","keep your cool","express your emotions","hold a meaningful conversation","give constructive feedback","listen attentively","stick to a budget","make an impulsive purchase","make smart purchases","protect sensitive information","embrace new technology","break the habit of scrolling","step outside your comfort zone","broaden your horizons","take care of your mental health","adopt healthier habits","make steady progress","learn through experience","pursue a career","achieve your ambitions","hold a strong opinion","think critically","raise public awareness","make a positive impact"];
+    const russian={"experience burnout":"перегореть / испытывать профессиональное выгорание","build a strong relationship":"построить крепкие отношения","plan ahead":"заранее планировать","make a sensible decision":"принять разумное решение","face a dilemma":"оказаться перед дилеммой","earn someone's trust":"заслужить чье-то доверие","keep your cool":"сохранять спокойствие","stick to a budget":"придерживаться бюджета","embrace new technology":"освоить новые технологии","broaden your horizons":"расширить кругозор","adopt healthier habits":"выработать более здоровые привычки","pursue a career":"строить карьеру","think critically":"мыслить критически","make a positive impact":"оказать положительное влияние"};
+    let queue=[],index=0,score=0,answers=[],sources=JSON.parse(localStorage.getItem('wordprep_sources')||'[]'),history=JSON.parse(localStorage.getItem('wordprep_history')||'[]');
+
+    document.querySelectorAll('.tab').forEach(b=>b.onclick=()=>{
+      document.querySelectorAll('main section').forEach(s=>s.classList.add('hidden'));
+      document.getElementById(b.dataset.tab).classList.remove('hidden');
+      document.querySelectorAll('.tab').forEach(x=>x.className='tab rounded-lg px-3 py-1.5 text-zinc-600');
+      b.className='tab rounded-lg px-3 py-1.5';
+    });
+
+    document.getElementById('startTest').onclick=()=>{
+      const a=Number(start.value)||1,b=Number(end.value)||40;
+      queue=topicWords.slice(Math.max(0,a-1),Math.min(topicWords.length,b));
+      if(!queue.length)return;
+      index=0;score=0;answers=[];document.getElementById('quiz').classList.remove('hidden');showWord();
+    };
+
+    function showWord(){
+      const w=queue[index];document.getElementById('counter').textContent=`Слово ${index+1} из ${queue.length}`;
+      document.getElementById('progress').textContent=`Прогресс: ${Math.round(index/queue.length*100)}%`;
+      document.getElementById('phrase').textContent=w;document.getElementById('sentence').value='';
+      const right=russian[w]||'точный русский перевод устойчивого выражения';
+      const wrong=['уходить от ответственности','проявлять излишнюю сдержанность','действовать в спешке','полностью игнорировать ситуацию'];
+      const opts=[right,...wrong.slice(0,3)].sort(()=>Math.random()-.5);
+      document.getElementById('options').innerHTML=opts.map(x=>`<button class="option rounded-xl border border-zinc-200 p-3 text-left text-sm hover:border-zinc-400">${x}</button>`).join('');
+      document.querySelectorAll('.option').forEach(btn=>btn.onclick=()=>{document.querySelectorAll('.option').forEach(x=>x.className='option rounded-xl border border-zinc-200 p-3 text-left text-sm');btn.className='option rounded-xl border-2 border-indigo-500 bg-indigo-50 p-3 text-left text-sm';btn.dataset.selected='true'});
+    }
+
+    document.getElementById('check').onclick=()=>{
+      const selected=document.querySelector('.option[data-selected="true"]');
+      if(!selected)return alert('Выберите вариант перевода');
+      const w=queue[index],right=russian[w]||'точный русский перевод устойчивого выражения';
+      const ok=selected.textContent===right;if(ok)score++;answers.push({word:w,correct:ok});
+      document.querySelectorAll('.option').forEach(b=>{b.className=b.textContent===right?'option rounded-xl border-2 border-emerald-500 bg-emerald-50 p-3 text-left text-sm':'option rounded-xl border border-zinc-200 p-3 text-left text-sm text-zinc-400'});
+    };
+
+    document.getElementById('next').onclick=()=>{
+      if(index<queue.length-1){index++;showWord()}else{
+        history.unshift({date:new Date().toLocaleString('ru-RU'),total:queue.length,correct:score,words:queue});localStorage.setItem('wordprep_history',JSON.stringify(history));renderHistory();document.getElementById('history').classList.remove('hidden');document.getElementById('test').classList.add('hidden');document.querySelectorAll('.tab').forEach(x=>x.classList.remove('bg-white'));document.querySelector('[data-tab="history"]').className='tab rounded-lg px-3 py-1.5';
+      }
+    };
+
+    function renderHistory(){document.getElementById('historyList').innerHTML=history.length?history.map(h=>`<div class="mb-3 rounded-xl border border-zinc-200 p-4"><div class="font-medium">Результат: ${h.correct} из ${h.total}</div><div class="mt-1 text-xs text-zinc-400">${h.date}</div></div>`).join(''):'Завершённых тестов пока нет.'}
+
+    document.getElementById('saveSource').onclick=()=>{const title=sourceTitle.value.trim(),text=sourceText.value.trim();if(!title||!text)return alert('Укажите название и текст');sources.unshift({title,words:text.split(/\n|,/).map(x=>x.trim()).filter(Boolean)});localStorage.setItem('wordprep_sources',JSON.stringify(sources));sourceTitle.value='';sourceText.value='';renderSources();};
+    function renderSources(){document.getElementById('sourceList').innerHTML=sources.length?sources.map(s=>`<div class="rounded-xl border border-zinc-200 p-3"><div class="font-medium">${s.title}</div><div class="mt-1 text-xs text-zinc-500">${s.words.join(', ')}</div></div>`).join(''):'Источников пока нет.'}
+    renderHistory();renderSources();
+  </script>
+</body>
+</html>
